@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>SharePresent - Penonton Live</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📡</text></svg>">
+  <!-- CDNs for PeerJS, Canvas Confetti -->
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+</head>
+<body class="presentation-app-container">
+
+  <!-- Top Audience Header -->
+  <header class="app-header">
+    <div class="header-left">
+      <div class="brand-logo" style="font-size: 1.05rem;">
+        <div class="brand-icon" style="width: 28px; height: 28px; font-size: 0.85rem;">📡</div>
+        <span id="audience-header-title">Menghubungkan...</span>
+      </div>
+      <span class="badge badge-green badge-pulse" id="connection-status-badge">Live Sync</span>
+    </div>
+
+    <div class="header-right">
+      <!-- Sync Status Badge / Recenter Button -->
+      <button class="btn btn-secondary" id="btn-recenter-host" style="display: none; padding: 5px 12px; font-size: 0.8rem; background: rgba(99, 102, 241, 0.2); border-color: var(--primary);">
+        <span>🔄 Ikuti Presenter</span>
+      </button>
+
+      <!-- Slide number badge -->
+      <span class="slide-counter-badge" id="audience-slide-counter" style="font-size: 0.85rem; padding: 4px 10px;">
+        Slide <span id="aud-current-slide">1</span> / <span id="aud-total-slide">5</span>
+      </span>
+
+      <!-- Fullscreen button -->
+      <button class="btn btn-icon btn-secondary" id="btn-aud-fullscreen" title="Layar Penuh">
+        ⛶
+      </button>
+    </div>
+  </header>
+
+  <!-- Notification Banner for Active Poll -->
+  <div id="audience-poll-banner" style="display: none; background: linear-gradient(135deg, #4f46e5, #7c3aed); color: white; padding: 10px 16px; text-align: center; font-size: 0.9rem; font-weight: 600; cursor: pointer; animation: pulse-dot 2s infinite;" onclick="openPollAnswerModal()">
+    <span>📊 Presenter memulai Polling Baru! Klik di sini untuk menjawab →</span>
+  </div>
+
+  <!-- Main Presentation Stage -->
+  <main class="presentation-stage-wrapper" id="aud-stage-wrapper">
+    <div class="slide-viewport" id="aud-slide-viewport">
+      <!-- 1. Slide Content Surface -->
+      <div class="slide-content-surface" id="aud-slide-surface">
+        <div style="text-align: center; color: var(--text-muted);">
+          <div style="font-size: 2.5rem; margin-bottom: 12px; animation: spin 2s linear infinite;">⏳</div>
+          <p>Sedang menyinkronkan dengan presenter...</p>
+        </div>
+      </div>
+
+      <!-- 2. Screen Share Video Element (when WebRTC screen share active) -->
+      <video id="aud-screenshare-video" class="screenshare-video" autoplay playsinline style="display: none;"></video>
+
+      <!-- 3. Drawing Canvas Overlay (Presenter's live strokes) -->
+      <canvas id="aud-drawing-canvas" class="drawing-canvas"></canvas>
+
+      <!-- 4. Laser Pointer Dot Element -->
+      <div id="aud-laser-dot" class="laser-pointer-dot" style="display: none;"></div>
+
+      <!-- 5. Floating Reactions Container -->
+      <div id="aud-reactions-container" style="position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 55;"></div>
+
+      <!-- Free Exploration Controls (Only shown if presenter enabled free explore) -->
+      <div id="aud-explore-controls" style="display: none; position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%); z-index: 50; background: rgba(13, 18, 31, 0.9); border: 1px solid var(--border-subtle); border-radius: var(--radius-full); padding: 4px 12px; gap: 10px; align-items: center; box-shadow: var(--shadow-md);">
+        <button class="btn btn-secondary" id="btn-aud-prev" style="padding: 4px 10px; font-size: 0.8rem;">◀ Prev</button>
+        <span style="font-size: 0.8rem; color: var(--text-muted);">Jelajahi Sendiri</span>
+        <button class="btn btn-secondary" id="btn-aud-next" style="padding: 4px 10px; font-size: 0.8rem;">Next ▶</button>
+      </div>
+    </div>
+  </main>
+
+  <!-- Bottom Interaction Bar -->
+  <footer class="audience-bottom-bar">
+    <!-- Left: Reactions Cluster -->
+    <div class="reactions-cluster">
+      <button class="reaction-btn" data-emoji="❤️" title="Kirim Hati">❤️</button>
+      <button class="reaction-btn" data-emoji="👏" title="Tepuk Tangan">👏</button>
+      <button class="reaction-btn" data-emoji="🔥" title="Keren / Semangat">🔥</button>
+      <button class="reaction-btn" data-emoji="💡" title="Ide Cemerlang">💡</button>
+      <button class="reaction-btn" data-emoji="🙋‍♂️" title="Angkat Tangan">🙋‍♂️</button>
+    </div>
+
+    <!-- Right: Q&A and Poll Action Buttons -->
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <!-- Answer Poll button -->
+      <button class="btn btn-secondary" id="btn-aud-poll" style="padding: 8px 14px; font-size: 0.88rem;" onclick="openPollAnswerModal()">
+        <span>📊 Polling</span>
+      </button>
+
+      <!-- Q&A Button -->
+      <button class="btn btn-primary" id="btn-aud-qa" style="padding: 8px 16px; font-size: 0.88rem;" onclick="openQAModal()">
+        <span>💬 Tanya</span>
+      </button>
+    </div>
+  </footer>
+
+  <!-- ==================== AUDIENCE MODALS ==================== -->
+
+  <!-- 1. Q&A Modal -->
+  <div class="modal-overlay" id="aud-qa-modal">
+    <div class="modal-card" style="max-width: 540px; max-height: 85vh; display: flex; flex-direction: column;">
+      <button class="modal-close-btn" onclick="toggleModal('aud-qa-modal', false)">✕</button>
+      <h2 style="font-size: 1.3rem; font-weight: 700; margin-bottom: 6px;">💬 Tanya Jawab Presentasi</h2>
+      <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 14px;">
+        Ajukan pertanyaan ke presenter atau berikan upvote pada pertanyaan peserta lain.
+      </p>
+
+      <!-- Submit Question Form -->
+      <form id="aud-ask-form" onsubmit="handleAudienceAsk(event)" style="margin-bottom: 16px;">
+        <div style="display: flex; gap: 8px;">
+          <input type="text" id="aud-question-input" class="input-field" placeholder="Ketik pertanyaan Anda di sini..." style="margin-bottom: 0;" required maxlength="200">
+          <button type="submit" class="btn btn-primary" style="flex-shrink: 0; padding: 0 16px;">
+            Kirim
+          </button>
+        </div>
+      </form>
+
+      <!-- Questions List -->
+      <div id="aud-questions-list" style="flex: 1; overflow-y: auto; padding-right: 4px; display: flex; flex-direction: column; gap: 10px;">
+        <div id="aud-qa-empty" style="text-align: center; color: var(--text-muted); padding: 30px 10px;">
+          <div style="font-size: 2rem; margin-bottom: 8px; opacity: 0.5;">🙋‍♀️</div>
+          <p style="font-size: 0.9rem;">Belum ada pertanyaan. Jadilah yang pertama bertanya!</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. Poll Answer Modal -->
+  <div class="modal-overlay" id="aud-poll-modal">
+    <div class="modal-card" style="max-width: 500px;">
+      <button class="modal-close-btn" onclick="toggleModal('aud-poll-modal', false)">✕</button>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <span class="badge badge-green badge-pulse">Live Polling</span>
+        <span id="aud-poll-vote-count" style="font-size: 0.85rem; color: var(--text-muted);">0 Suara</span>
+      </div>
+
+      <h3 id="aud-poll-question-text" style="font-size: 1.2rem; font-weight: 700; margin-bottom: 16px;">
+        Pertanyaan Polling
+      </h3>
+
+      <div id="aud-poll-options-box" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 18px;">
+        <!-- Option buttons or result bars injected via JavaScript -->
+      </div>
+
+      <div style="text-align: right;">
+        <button class="btn btn-secondary" onclick="toggleModal('aud-poll-modal', false)">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/audience.js"></script>
+</body>
+</html>

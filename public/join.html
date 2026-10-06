@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Gabung Presentasi - SharePresent</title>
+  <meta name="description" content="Masukkan kode 6 digit untuk bergabung dan melihat layar presentasi secara langsung.">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📡</text></svg>">
+  <style>
+    /* Full-screen dedicated center layout for Join window */
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+      background: radial-gradient(circle at center, #10172a 0%, #06080e 100%);
+    }
+
+    .join-standalone-container {
+      width: 100%;
+      max-width: 460px;
+    }
+
+    .join-window-card {
+      padding: 40px 32px;
+      text-align: center;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7), 0 0 30px rgba(99, 102, 241, 0.15);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .join-window-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, #6366f1, #a855f7, #ec4899);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="join-standalone-container">
+    <div class="glass-panel join-window-card">
+      
+      <!-- Brand & Icon -->
+      <div style="display: inline-flex; align-items: center; justify-content: center; width: 64px; height: 64px; border-radius: var(--radius-md); background: linear-gradient(135deg, #6366f1, #8b5cf6); font-size: 2rem; color: white; margin-bottom: 20px; box-shadow: 0 8px 24px rgba(99, 102, 241, 0.4);">
+        📡
+      </div>
+
+      <h1 style="font-size: 1.8rem; font-weight: 800; margin-bottom: 8px; letter-spacing: -0.02em;">
+        Gabung Presentasi
+      </h1>
+      <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 28px; line-height: 1.5;">
+        Ketik 6 digit kode yang tampil di layar presenter untuk melihat slide secara langsung.
+      </p>
+
+      <!-- Join Form -->
+      <form id="standalone-join-form" onsubmit="submitJoin(event)">
+        <label style="font-size: 0.8rem; font-weight: 700; color: #a5b4fc; text-transform: uppercase; letter-spacing: 0.08em; display: block; margin-bottom: 12px; text-align: left;">
+          KODE JOIN (6 DIGIT):
+        </label>
+        
+        <!-- 6 PIN inputs -->
+        <div class="pin-inputs-wrapper" id="pin-container" style="margin-bottom: 24px;">
+          <input type="text" maxlength="1" class="pin-digit-input" data-index="0" inputmode="numeric" autocomplete="off" autofocus>
+          <input type="text" maxlength="1" class="pin-digit-input" data-index="1" inputmode="numeric" autocomplete="off">
+          <input type="text" maxlength="1" class="pin-digit-input" data-index="2" inputmode="numeric" autocomplete="off">
+          <input type="text" maxlength="1" class="pin-digit-input" data-index="3" inputmode="numeric" autocomplete="off">
+          <input type="text" maxlength="1" class="pin-digit-input" data-index="4" inputmode="numeric" autocomplete="off">
+          <input type="text" maxlength="1" class="pin-digit-input" data-index="5" inputmode="numeric" autocomplete="off">
+        </div>
+
+        <div style="margin-bottom: 24px; text-align: left;">
+          <label for="audience-name" style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 8px;">
+            NAMA ANDA (OPSIONAL):
+          </label>
+          <input type="text" id="audience-name" class="input-field" placeholder="Contoh: Budi Santoso" maxlength="30" style="margin-bottom: 0;">
+        </div>
+
+        <button type="submit" class="btn btn-primary" id="btn-submit-join" style="width: 100%; padding: 16px; font-size: 1.08rem; border-radius: var(--radius-md);">
+          <span>Masuk Ruangan Presentasi</span>
+          <span style="font-size: 1.2rem;">→</span>
+        </button>
+      </form>
+
+      <div style="margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--border-subtle); display: flex; justify-content: space-between; align-items: center; font-size: 0.82rem; color: var(--text-faint);">
+        <span>🌐 Bebas Jaringan Wi-Fi</span>
+        <span>⚡ Real-Time Sync</span>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="/js/app.js"></script>
+  <script>
+    const pinInputs = document.querySelectorAll('.pin-digit-input');
+
+    // Handle pin input typing, backspace, and navigation
+    pinInputs.forEach((input, idx) => {
+      input.addEventListener('input', (e) => {
+        const val = e.target.value;
+        if (val.length >= 1) {
+          e.target.value = val.slice(-1).toUpperCase();
+          if (idx < pinInputs.length - 1) {
+            pinInputs[idx + 1].focus();
+          }
+        }
+      });
+
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Backspace' && !e.target.value && idx > 0) {
+          pinInputs[idx - 1].focus();
+        }
+      });
+
+      input.addEventListener('paste', (e) => {
+        e.preventDefault();
+        const pasted = (e.clipboardData || window.clipboardData).getData('text').trim().replace(/\s|-/g, '');
+        if (pasted.length) {
+          for (let i = 0; i < pinInputs.length && i < pasted.length; i++) {
+            pinInputs[i].value = pasted[i].toUpperCase();
+          }
+          const nextIndex = Math.min(pasted.length, pinInputs.length - 1);
+          pinInputs[nextIndex].focus();
+        }
+      });
+    });
+
+    // Check code from URL path (/join/123456) or query string (/join?code=123456)
+    window.addEventListener('DOMContentLoaded', () => {
+      let code = '';
+      
+      // 1. From path e.g. /join/123456
+      const pathParts = window.location.pathname.split('/').filter(Boolean);
+      if (pathParts.length >= 2 && pathParts[0] === 'join') {
+        code = pathParts[1];
+      }
+
+      // 2. From query string ?code=123456
+      if (!code) {
+        const params = new URLSearchParams(window.location.search);
+        code = params.get('code') || '';
+      }
+
+      code = code.replace(/\s|-/g, '');
+      if (code && code.length >= 6) {
+        for (let i = 0; i < 6 && i < code.length; i++) {
+          if (pinInputs[i]) pinInputs[i].value = code[i].toUpperCase();
+        }
+        document.getElementById('audience-name').focus();
+      }
+    });
+
+    // Handle Submit
+    function submitJoin(e) {
+      e.preventDefault();
+      let code = '';
+      pinInputs.forEach(inp => code += inp.value.trim());
+
+      if (code.length < 6) {
+        Utils.showToast('Harap masukkan 6 digit kode lengkap!', '⚠️');
+        return;
+      }
+
+      const name = document.getElementById('audience-name').value.trim();
+      Utils.playSound('click');
+
+      // Redirect to audience viewer
+      const targetUrl = `/audience.html?code=${encodeURIComponent(code)}&name=${encodeURIComponent(name)}`;
+      window.location.href = targetUrl;
+    }
+  </script>
+</body>
+</html>

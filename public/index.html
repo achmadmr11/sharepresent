@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SharePresent - Berbagi Slide Presentasi Real-Time Lintas Jaringan</title>
+  <meta name="description" content="Aplikasi web sharing slide presentasi interaktif secara real-time. Audience dapat melihat layar tanpa harus dalam jaringan Wi-Fi yang sama.">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📡</text></svg>">
+</head>
+<body>
+  <!-- Navigation Header -->
+  <header class="home-navbar">
+    <div class="brand-logo">
+      <div class="brand-icon">📡</div>
+      <span>SharePresent</span>
+    </div>
+    <div style="display: flex; gap: 12px; align-items: center;">
+      <span class="badge badge-green badge-pulse">Server Online</span>
+      <a href="/join" class="btn btn-secondary" style="font-size: 0.88rem; padding: 8px 16px;">📱 Halaman Penonton (/join)</a>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="home-container">
+    <!-- Hero Section -->
+    <section class="hero-section">
+      <div class="hero-tag">
+        <span>✨ Bebas Wi-Fi • Akses Dari Mana Saja • Real-Time Sync</span>
+      </div>
+      <h1 class="hero-title">
+        Presentasi Interaktif <br>
+        <span class="gradient-text">Tanpa Batas Jaringan Wi-Fi</span>
+      </h1>
+      <p class="hero-desc">
+        Tampilkan slide presentasi langsung ke layar smartphone atau laptop penonton Anda. 
+        Penonton cukup mengetikkan <strong>6 digit kode join</strong> atau scan QR code — 
+        bisa menggunakan kuota seluler, Wi-Fi rumah, atau di belahan dunia lain.
+      </p>
+    </section>
+
+    <!-- Action Cards: Join vs Create -->
+    <section class="action-cards-grid" id="quick-join">
+      <!-- Card 1: Join as Audience -->
+      <div class="glass-panel action-card">
+        <div>
+          <div class="card-header">
+            <div class="card-icon" style="color: var(--accent-cyan); background: rgba(6, 182, 212, 0.15); border-color: rgba(6, 182, 212, 0.3);">
+              📱
+            </div>
+            <h2 class="card-title">Gabung sebagai Penonton</h2>
+            <p class="card-subtitle">
+              Ketik 6 digit kode yang diberikan oleh presenter untuk langsung melihat slide di layar Anda.
+            </p>
+          </div>
+
+          <form id="join-form" onsubmit="handleJoin(event)">
+            <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 8px;">
+              KODE JOIN (6 DIGIT):
+            </label>
+            
+            <!-- 6 PIN inputs -->
+            <div class="pin-inputs-wrapper" id="pin-container">
+              <input type="text" maxlength="1" class="pin-digit-input" data-index="0" inputmode="numeric" autocomplete="off" autofocus>
+              <input type="text" maxlength="1" class="pin-digit-input" data-index="1" inputmode="numeric" autocomplete="off">
+              <input type="text" maxlength="1" class="pin-digit-input" data-index="2" inputmode="numeric" autocomplete="off">
+              <input type="text" maxlength="1" class="pin-digit-input" data-index="3" inputmode="numeric" autocomplete="off">
+              <input type="text" maxlength="1" class="pin-digit-input" data-index="4" inputmode="numeric" autocomplete="off">
+              <input type="text" maxlength="1" class="pin-digit-input" data-index="5" inputmode="numeric" autocomplete="off">
+            </div>
+
+            <div style="margin-top: 14px; margin-bottom: 20px;">
+              <label for="audience-name" style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 8px;">
+                NAMA ANDA (OPSIONAL):
+              </label>
+              <input type="text" id="audience-name" class="input-field" placeholder="Contoh: Budi Santoso" maxlength="30">
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width: 100%; padding: 14px; font-size: 1.05rem;">
+              <span>Masuk Ruangan Presentasi</span>
+              <span>→</span>
+            </button>
+          </form>
+        </div>
+        <p style="font-size: 0.82rem; color: var(--text-faint); margin-top: 20px; text-align: center;">
+          💡 Tidak perlu mendaftar atau instal aplikasi tambahan.
+        </p>
+      </div>
+
+      <!-- Card 2: Create Presentation as Host -->
+      <div class="glass-panel action-card">
+        <div>
+          <div class="card-header">
+            <div class="card-icon" style="color: var(--secondary); background: rgba(139, 92, 246, 0.15); border-color: rgba(139, 92, 246, 0.3);">
+              🚀
+            </div>
+            <h2 class="card-title">Mulai Presentasi Baru</h2>
+            <p class="card-subtitle">
+              Buat ruangan presentasi Anda, bagikan kode atau QR code ke audiens, dan kendalikan slide.
+            </p>
+          </div>
+
+          <form id="create-form" onsubmit="handleCreate(event)">
+            <div style="margin-bottom: 20px;">
+              <label for="present-title" style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 8px;">
+                JUDUL PRESENTASI:
+              </label>
+              <input type="text" id="present-title" class="input-field" placeholder="Contoh: Diskusi Produk & Roadmap 2026" required value="Presentasi Inovasi Digital">
+            </div>
+
+            <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 16px; margin-bottom: 20px;">
+              <span style="font-size: 0.85rem; font-weight: 700; color: #cbd5e1; display: block; margin-bottom: 8px;">
+                🛠️ Opsi Konten Presentasi:
+              </span>
+              <ul style="font-size: 0.82rem; color: var(--text-muted); list-style: none; display: flex; flex-direction: column; gap: 6px;">
+                <li>✓ Slide Keynote Bawaan (Langsung siap pakai)</li>
+                <li>✓ Upload PDF / PowerPoint yang diekspor ke PDF</li>
+                <li>✓ Bagikan Layar Langsung (Live Screen Share WebRTC)</li>
+              </ul>
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width: 100%; padding: 14px; font-size: 1.05rem; background: linear-gradient(135deg, #8b5cf6, #ec4899);">
+              <span>Buat Ruangan Presentasi 🚀</span>
+            </button>
+          </form>
+        </div>
+        <p style="font-size: 0.82rem; color: var(--text-faint); margin-top: 20px; text-align: center;">
+          ⚡ Dapatkan 6-digit kode unik & QR Code otomatis.
+        </p>
+      </div>
+    </section>
+
+    <!-- Why it works across networks -->
+    <section>
+      <div style="text-align: center; margin-bottom: 32px;">
+        <span class="badge badge-primary">🌐 Solusi Lintas Jaringan</span>
+        <h2 style="font-size: 2rem; font-weight: 800; margin-top: 12px;">Bagaimana Cara Kerjanya?</h2>
+      </div>
+
+      <div class="feature-benefits-row">
+        <div class="benefit-box">
+          <div class="benefit-icon">📡</div>
+          <h3 class="benefit-title">Tidak Perlu Satu Jaringan Wi-Fi</h3>
+          <p class="benefit-desc">
+            Menggunakan protokol WebSocket Cloud & WebRTC dengan STUN server. Audiens dapat terhubung meski memakai paket data seluler (Telkomsel/Indosat/XL), Wi-Fi publik, atau jaringan kantor yang terpisah.
+          </p>
+        </div>
+
+        <div class="benefit-box">
+          <div class="benefit-icon">🎯</div>
+          <h3 class="benefit-title">Laser Pointer & Live Drawing</h3>
+          <p class="benefit-desc">
+            Saat presenter menggerakkan kursor atau mencoret slide untuk menandai poin penting, titik laser dan goresan muncul di layar audiens secara instan tanpa lag.
+          </p>
+        </div>
+
+        <div class="benefit-box">
+          <div class="benefit-icon">💬</div>
+          <h3 class="benefit-title">Q&A, Polling & Reaksi Emoji</h3>
+          <p class="benefit-desc">
+            Audiens dapat memberikan tepuk tangan atau hati (emoji animasi mengambang), mengajukan pertanyaan, serta melakukan voting polling secara langsung.
+          </p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    // Handle 6-pin input navigation and paste
+    const pinInputs = document.querySelectorAll('.pin-digit-input');
+    pinInputs.forEach((input, idx) => {
+      input.addEventListener('input', (e) => {
+        const val = e.target.value;
+        if (val.length >= 1) {
+          e.target.value = val.slice(-1).toUpperCase();
+          if (idx < pinInputs.length - 1) {
+            pinInputs[idx + 1].focus();
+          }
+        }
+      });
+
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Backspace' && !e.target.value && idx > 0) {
+          pinInputs[idx - 1].focus();
+        }
+      });
+
+      input.addEventListener('paste', (e) => {
+        e.preventDefault();
+        const pasted = (e.clipboardData || window.clipboardData).getData('text').trim().replace(/\s|-/g, '');
+        if (pasted.length) {
+          for (let i = 0; i < pinInputs.length && i < pasted.length; i++) {
+            pinInputs[i].value = pasted[i].toUpperCase();
+          }
+          const nextIndex = Math.min(pasted.length, pinInputs.length - 1);
+          pinInputs[nextIndex].focus();
+        }
+      });
+    });
+
+    // Check if URL has ?code=XXXXXX (e.g. from QR scan)
+    window.addEventListener('DOMContentLoaded', () => {
+      const params = Utils.getUrlParams();
+      const codeFromUrl = params.get('code');
+      if (codeFromUrl && codeFromUrl.length >= 6) {
+        for (let i = 0; i < 6 && i < codeFromUrl.length; i++) {
+          if (pinInputs[i]) pinInputs[i].value = codeFromUrl[i].toUpperCase();
+        }
+      }
+    });
+
+    // Handle Join Submit
+    function handleJoin(e) {
+      e.preventDefault();
+      let code = '';
+      pinInputs.forEach(inp => code += inp.value.trim());
+
+      if (code.length < 6) {
+        Utils.showToast('Harap masukkan 6 digit kode lengkap!', '⚠️');
+        return;
+      }
+
+      const name = document.getElementById('audience-name').value.trim();
+      Utils.playSound('click');
+
+      // Redirect to audience viewer
+      const targetUrl = `audience.html?code=${encodeURIComponent(code)}&name=${encodeURIComponent(name)}`;
+      window.location.href = targetUrl;
+    }
+
+    // Handle Create Submit
+    function handleCreate(e) {
+      e.preventDefault();
+      const title = document.getElementById('present-title').value.trim();
+      Utils.playSound('pop');
+
+      // Connect to socket and create room
+      const socket = io();
+      Utils.showToast('Membuat ruangan presentasi...', '⏳');
+
+      socket.emit('room:create', { title }, (response) => {
+        if (response && response.success) {
+          // Store room info and redirect to presenter view
+          sessionStorage.setItem('sharepresent_created_room', JSON.stringify(response.room));
+          window.location.href = `presenter.html?code=${response.code}`;
+        } else {
+          Utils.showToast('Gagal membuat ruangan. Silakan coba lagi.', '❌');
+        }
+      });
+    }
+  </script>
+</body>
+</html>

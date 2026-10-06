@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SharePresent - Ruang Presenter (Host)</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📡</text></svg>">
+  <!-- CDNs for PDF.js, QRCode.js, PeerJS, Canvas-Confetti -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+</head>
+<body class="presentation-app-container">
+
+  <!-- Top App Header -->
+  <header class="app-header">
+    <div class="header-left">
+      <div class="brand-logo" style="font-size: 1.15rem;">
+        <div class="brand-icon" style="width: 32px; height: 32px; font-size: 1rem;">📡</div>
+        <span id="header-presentation-title">Presentasi Live</span>
+      </div>
+
+      <!-- Room Code Badge (Click to copy) -->
+      <div class="room-code-badge" id="btn-copy-code" title="Klik untuk menyalin link join audiens">
+        <span class="room-code-label">Kode:</span>
+        <span class="room-code-number" id="display-room-code">------</span>
+        <span style="font-size: 0.9rem; opacity: 0.7;">📋</span>
+      </div>
+
+      <!-- QR Code Button -->
+      <button class="btn btn-secondary" id="btn-show-qr" style="padding: 6px 12px; font-size: 0.85rem;" title="Tampilkan QR Code untuk audiens">
+        <span>📲 QR Code</span>
+      </button>
+    </div>
+
+    <!-- Center: Presentation Timer & Audience Count -->
+    <div class="header-center">
+      <!-- Timer -->
+      <div style="display: flex; align-items: center; gap: 8px; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-subtle); padding: 5px 12px; border-radius: var(--radius-full);">
+        <span style="font-size: 0.9rem;">⏱️</span>
+        <span id="timer-display" style="font-family: var(--font-code); font-weight: 700; font-size: 0.95rem;">00:00</span>
+        <button id="btn-timer-toggle" style="color: var(--text-muted); font-size: 0.8rem;" title="Mulai / Jeda Timer">⏯️</button>
+        <button id="btn-timer-reset" style="color: var(--text-muted); font-size: 0.8rem;" title="Reset Timer">🔄</button>
+      </div>
+
+      <!-- Audience Live Counter -->
+      <div class="badge badge-green badge-pulse" id="audience-counter" title="Jumlah audiens yang sedang terhubung">
+        <span id="audience-count-num">0</span> Penonton Live
+      </div>
+    </div>
+
+    <!-- Right: Source switch & Fullscreen -->
+    <div class="header-right">
+      <!-- Slide Source Selector -->
+      <div style="position: relative;">
+        <select id="source-selector" class="btn btn-secondary" style="padding: 7px 14px; font-size: 0.85rem; appearance: auto; background: #131929;">
+          <option value="deck">📑 Slide Keynote Bawaan</option>
+          <option value="pdf">📄 Upload PDF (PPTX)</option>
+          <option value="screenshare">🖥️ Live Screen Share (WebRTC)</option>
+        </select>
+        <!-- Hidden file input for PDF -->
+        <input type="file" id="pdf-file-input" accept=".pdf" style="display: none;">
+      </div>
+
+      <!-- Fullscreen Toggle -->
+      <button class="btn btn-icon btn-secondary" id="btn-fullscreen" title="Layar Penuh (F11)">
+        ⛶
+      </button>
+
+      <!-- Exit Room -->
+      <button class="btn btn-danger" id="btn-leave-room" style="padding: 6px 12px; font-size: 0.85rem;" title="Akhiri Presentasi">
+        Akhiri
+      </button>
+    </div>
+  </header>
+
+  <!-- Presenter Floating Toolbar (Laser, Draw, Navigation) -->
+  <div style="display: flex; justify-content: center; gap: 10px; padding: 8px 16px; background: rgba(9, 13, 22, 0.9); border-bottom: 1px solid var(--border-subtle); z-index: 45;">
+    <!-- Laser Pointer Toggle -->
+    <button class="tool-btn" id="btn-laser-pointer" title="Laser Pointer (Tekan 'L')">
+      <span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: #ff2d55; box-shadow: 0 0 8px #ff2d55;"></span>
+      <span>Laser Pointer (L)</span>
+    </button>
+
+    <!-- Draw Pen Toggle -->
+    <button class="tool-btn" id="btn-draw-pen" title="Coretan / Menggambar di Slide (Tekan 'D')">
+      <span>✏️ Gambar / Coret (D)</span>
+    </button>
+
+    <!-- Pen Color Picker -->
+    <div id="pen-colors-group" style="display: none; align-items: center; gap: 6px; background: rgba(255, 255, 255, 0.05); padding: 4px 10px; border-radius: var(--radius-md);">
+      <button class="pen-color-dot" data-color="#ff2d55" style="width: 18px; height: 18px; border-radius: 50%; background: #ff2d55; border: 2px solid white; cursor: pointer;"></button>
+      <button class="pen-color-dot" data-color="#f59e0b" style="width: 18px; height: 18px; border-radius: 50%; background: #f59e0b; border: 1px solid var(--border-subtle); cursor: pointer;"></button>
+      <button class="pen-color-dot" data-color="#10b981" style="width: 18px; height: 18px; border-radius: 50%; background: #10b981; border: 1px solid var(--border-subtle); cursor: pointer;"></button>
+      <button class="pen-color-dot" data-color="#38bdf8" style="width: 18px; height: 18px; border-radius: 50%; background: #38bdf8; border: 1px solid var(--border-subtle); cursor: pointer;"></button>
+      <button id="btn-draw-clear" class="btn btn-outline" style="padding: 2px 8px; font-size: 0.75rem; margin-left: 6px;">Hapus Coretan</button>
+    </div>
+
+    <!-- Toggle Audience Free Exploration -->
+    <button class="tool-btn" id="btn-toggle-explore" title="Izinkan atau kunci audiens agar selalu mengikuti slide presenter">
+      <span id="explore-icon">🔒</span>
+      <span id="explore-label">Kunci Audiens (Terkunci)</span>
+    </button>
+  </div>
+
+  <!-- Center Stage Presentation Viewport -->
+  <main class="presentation-stage-wrapper" id="stage-wrapper">
+    <div class="slide-viewport" id="slide-viewport">
+      <!-- 1. Slide Content Surface (Built-in Deck or PDF) -->
+      <div class="slide-content-surface" id="slide-surface">
+        <!-- Injected via JavaScript -->
+      </div>
+
+      <!-- 2. Screen Share Video Element (when screen share active) -->
+      <video id="screen-share-video" class="screenshare-video" autoplay playsinline muted style="display: none;"></video>
+
+      <!-- 3. Drawing Canvas Overlay -->
+      <canvas id="drawing-canvas" class="drawing-canvas"></canvas>
+
+      <!-- 4. Laser Pointer Dot Element -->
+      <div id="laser-dot" class="laser-pointer-dot" style="display: none;"></div>
+
+      <!-- 5. Floating Reactions Container -->
+      <div id="reactions-container" style="position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 55;"></div>
+    </div>
+  </main>
+
+  <!-- Bottom Dock (Presenter Remote Control) -->
+  <footer class="presenter-dock">
+    <div class="dock-left">
+      <!-- Speaker Notes Button -->
+      <button class="btn btn-secondary" id="btn-show-notes" title="Catatan Presenter">
+        <span>📝 Catatan</span>
+      </button>
+
+      <!-- Thumbnails Drawer Button -->
+      <button class="btn btn-secondary" id="btn-show-thumbnails" title="Semua Slide">
+        <span>📑 Galeri Slide</span>
+      </button>
+    </div>
+
+    <!-- Center: Slide Navigation -->
+    <div class="dock-center">
+      <button class="slide-nav-btn" id="btn-prev-slide" title="Slide Sebelumnya (Arrow Left)">
+        ◀
+      </button>
+
+      <div class="slide-counter-badge">
+        <span id="current-slide-num">1</span>
+        <span style="opacity: 0.5; margin: 0 4px;">/</span>
+        <span id="total-slide-num">5</span>
+      </div>
+
+      <button class="slide-nav-btn" id="btn-next-slide" title="Slide Selanjutnya (Arrow Right / Space)">
+        ▶
+      </button>
+    </div>
+
+    <!-- Right: Q&A, Polling, & Audience Interaction Controls -->
+    <div class="dock-right">
+      <!-- Polling Button -->
+      <button class="btn btn-secondary" id="btn-open-poll" title="Buat Polling / Kuis">
+        <span>📊 Polling</span>
+        <span id="poll-active-badge" style="display: none; width: 8px; height: 8px; border-radius: 50%; background: var(--accent-green);"></span>
+      </button>
+
+      <!-- Q&A Button with Counter -->
+      <button class="btn btn-secondary" id="btn-toggle-qa" title="Buka Sesi Tanya Jawab">
+        <span>💬 Tanya Jawab</span>
+        <span class="badge badge-primary" id="qa-count-badge" style="font-size: 0.72rem; padding: 2px 7px;">0</span>
+      </button>
+    </div>
+  </footer>
+
+  <!-- ==================== MODALS ==================== -->
+
+  <!-- 1. QR Code Modal -->
+  <div class="modal-overlay" id="qr-modal">
+    <div class="modal-card" style="text-align: center;">
+      <button class="modal-close-btn" onclick="toggleModal('qr-modal', false)">✕</button>
+      <h2 style="font-size: 1.4rem; font-weight: 700; margin-bottom: 8px;">Scan untuk Bergabung</h2>
+      <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 16px;">
+        Arahkan kamera smartphone ke kode QR di bawah untuk langsung melihat presentasi:
+      </p>
+
+      <div class="qr-code-box" id="qrcode-target"></div>
+
+      <div style="margin-top: 16px; background: rgba(255, 255, 255, 0.05); padding: 12px; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
+        <span style="font-size: 0.8rem; color: var(--text-muted); display: block; margin-bottom: 4px;">KODE JOIN 6 DIGIT:</span>
+        <span id="qr-modal-code" style="font-family: var(--font-code); font-size: 1.8rem; font-weight: 800; color: #a5b4fc; letter-spacing: 0.1em;">------</span>
+      </div>
+
+      <div style="margin-top: 16px; display: flex; gap: 10px;">
+        <button class="btn btn-primary" id="btn-copy-join-link" style="flex: 1;">
+          <span>📋 Salin Link Presentasi</span>
+        </button>
+        <button class="btn btn-secondary" onclick="toggleModal('qr-modal', false)">
+          Tutup
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. Speaker Notes Modal -->
+  <div class="modal-overlay" id="notes-modal">
+    <div class="modal-card">
+      <button class="modal-close-btn" onclick="toggleModal('notes-modal', false)">✕</button>
+      <h2 style="font-size: 1.3rem; font-weight: 700; margin-bottom: 12px;">📝 Catatan Presenter (Slide Ini)</h2>
+      <div id="slide-notes-content" style="background: rgba(0, 0, 0, 0.3); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 18px; color: #e2e8f0; font-size: 1rem; line-height: 1.6; min-height: 120px;">
+        Tidak ada catatan khusus untuk slide ini.
+      </div>
+      <div style="margin-top: 16px; text-align: right;">
+        <button class="btn btn-secondary" onclick="toggleModal('notes-modal', false)">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. Slide Thumbnails Gallery Modal -->
+  <div class="modal-overlay" id="thumbnails-modal">
+    <div class="modal-card" style="max-width: 800px;">
+      <button class="modal-close-btn" onclick="toggleModal('thumbnails-modal', false)">✕</button>
+      <h2 style="font-size: 1.3rem; font-weight: 700; margin-bottom: 16px;">📑 Pilih Slide untuk Melompat</h2>
+      <div id="thumbnails-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 14px; max-height: 450px; overflow-y: auto; padding-right: 6px;">
+        <!-- Injected via JavaScript -->
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. Polling Creator & Live Result Modal -->
+  <div class="modal-overlay" id="poll-modal">
+    <div class="modal-card" style="max-width: 580px;">
+      <button class="modal-close-btn" onclick="toggleModal('poll-modal', false)">✕</button>
+      <h2 style="font-size: 1.35rem; font-weight: 700; margin-bottom: 8px;">📊 Live Polling / Kuis Audiens</h2>
+      
+      <!-- Polling State 1: Create New Poll -->
+      <div id="poll-create-section">
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 16px;">
+          Lemparkan pertanyaan cepat ke penonton dan lihat hasil voting secara real-time.
+        </p>
+
+        <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 6px;">
+          PERTANYAAN POLLING:
+        </label>
+        <input type="text" id="poll-question-input" class="input-field" placeholder="Contoh: Apakah materi ini sudah jelas?" value="Apakah materi ini relevan dengan kebutuhan Anda?">
+
+        <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 6px;">
+          PILIHAN JAWABAN:
+        </label>
+        <div id="poll-options-container" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px;">
+          <input type="text" class="input-field poll-opt-input" style="margin-bottom: 0;" placeholder="Pilihan 1" value="Sangat Relevan 🚀">
+          <input type="text" class="input-field poll-opt-input" style="margin-bottom: 0;" placeholder="Pilihan 2" value="Cukup Relevan 👍">
+          <input type="text" class="input-field poll-opt-input" style="margin-bottom: 0;" placeholder="Pilihan 3" value="Perlu Pendalaman Lebih Lanjut 💡">
+        </div>
+
+        <button class="btn btn-primary" id="btn-start-poll" style="width: 100%; padding: 12px;">
+          🚀 Luncurkan Polling ke Layar Audiens
+        </button>
+      </div>
+
+      <!-- Polling State 2: Active Poll Results -->
+      <div id="poll-active-section" style="display: none;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+          <span class="badge badge-green badge-pulse">Polling Sedang Aktif</span>
+          <span id="poll-total-votes" style="font-size: 0.88rem; color: var(--text-muted);">0 Suara Masuk</span>
+        </div>
+
+        <h3 id="active-poll-question" style="font-size: 1.15rem; font-weight: 700; margin-bottom: 16px; color: #f8fafc;">
+          Pertanyaan
+        </h3>
+
+        <!-- Live Bars Results -->
+        <div id="poll-results-bars" style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 24px;">
+          <!-- Injected via JavaScript -->
+        </div>
+
+        <div style="display: flex; gap: 10px;">
+          <button class="btn btn-danger" id="btn-close-poll" style="flex: 1;">
+            Tutup Polling Ini
+          </button>
+          <button class="btn btn-secondary" onclick="resetPollForm()">
+            Buat Polling Baru
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. Q&A Side Drawer -->
+  <aside class="side-drawer" id="qa-drawer">
+    <div class="drawer-header">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="font-size: 1.2rem;">💬</span>
+        <h3 style="font-size: 1.1rem; font-weight: 700;">Tanya Jawab Audiens</h3>
+      </div>
+      <button class="modal-close-btn" style="position: static;" onclick="toggleQADrawer(false)">✕</button>
+    </div>
+
+    <div class="drawer-content" id="qa-list">
+      <div id="qa-empty-state" style="text-align: center; color: var(--text-muted); padding: 40px 10px;">
+        <div style="font-size: 2.5rem; margin-bottom: 12px; opacity: 0.5;">🙋‍♂️</div>
+        <p style="font-size: 0.95rem;">Belum ada pertanyaan dari audiens.</p>
+        <p style="font-size: 0.82rem; color: var(--text-faint); margin-top: 6px;">
+          Audiens dapat mengetikkan pertanyaan melalui layar mereka.
+        </p>
+      </div>
+    </div>
+
+    <div class="drawer-footer">
+      <button class="btn btn-secondary" style="width: 100%; font-size: 0.88rem;" onclick="Utils.playSound('applause'); confetti({ particleCount: 60, spread: 70 });">
+        🎉 Beri Apresiasi / Confetti
+      </button>
+    </div>
+  </aside>
+
+  <!-- Scripts -->
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/presenter.js"></script>
+</body>
+</html>
